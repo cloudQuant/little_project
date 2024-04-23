@@ -4,7 +4,6 @@ import numpy as np
 cimport numpy as np
 
 # 定义 Cython 接口函数，接收 NumPy 数组并传递给 C++ 函数
-# 定义 Cython 接口函数，接收 NumPy 数组并传递给 C++ 函数
 cdef extern from "example.hpp":
     double process_numpy_array(double* numpy_array, int size)
 

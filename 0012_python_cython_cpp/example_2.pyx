@@ -24,5 +24,5 @@ cpdef vector[double] arr_to_cppvector(np.ndarray[double, ndim=1] arr):
 
 
 def process_numpy_data(np.ndarray[double, ndim=1] numpy_array, int size):
-    # 获取 NumPy 数组的数据指针并传递给 C++ 函数
+    # 获取 NumPy 数组,并转化成vector传递给c++函数
     return process_numpy_array(arr_to_cppvector(numpy_array), size)
