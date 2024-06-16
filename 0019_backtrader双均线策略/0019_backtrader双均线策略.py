@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import backtrader as bt
 import datetime
+import pyfolio as pf
+import time
 
 
 class SmaStrategy(bt.Strategy):
@@ -65,43 +67,59 @@ class SmaStrategy(bt.Strategy):
                 trade.getdataname(), trade.price))
 
 
-# 添加cerebro
-cerebro = bt.Cerebro()
-# 添加策略
-cerebro.addstrategy(SmaStrategy)
-# 准备数据
-params = dict(
-    fromdate=datetime.datetime(2006, 10, 27),
-    todate=datetime.datetime(2020, 8, 14),
-    timeframe=bt.TimeFrame.Days,
-    compression=1,
-    # dtformat=('%Y-%m-%d %H:%M:%S'),
-    # tmformat=('%H:%M:%S'),
-    datetime=0,
-    high=2,
-    low=3,
-    open=1,
-    close=4,
-    volume=5,
-    openinterest=6)
-# 数据的地址，使用自己的数据地址
-data_path = 'C:/data/股票/零散/工商银行.csv'
-df = pd.read_csv(data_path, encoding='gbk')
-df = df[['日期', '开盘价', '最高价', '最低价', '收盘价', '成交量', '成交金额']]
-df.columns = ['datetime', 'open', 'high', 'low', 'close', 'volume', 'openinterest']
-df = df.sort_values("datetime")
-df.index = pd.to_datetime(df['datetime'])
-df = df[['open', 'high', 'low', 'close', 'volume', 'openinterest']]
-feed = bt.feeds.PandasDirectData(dataname=df, **params)
-# 添加合约数据
-cerebro.adddata(feed, name="gsyh")
-cerebro.broker.setcommission(commission=0.0005)
+def run():
+    begin_time = time.perf_counter()
+    # 添加cerebro
+    cerebro = bt.Cerebro()
+    # 添加策略
+    cerebro.addstrategy(SmaStrategy)
+    # 准备数据
+    params = dict(
+        fromdate=datetime.datetime(2016, 1, 4),
+        todate=datetime.datetime(2022, 3, 23),
+        timeframe=bt.TimeFrame.Minutes,
+        compression=5,
+        # dtformat=('%Y-%m-%d %H:%M:%S'),
+        # tmformat=('%H:%M:%S'),
+        datetime=0,
+        high=2,
+        low=3,
+        open=1,
+        close=4,
+        volume=5,
+        openinterest=6)
+    # 数据的地址，使用自己的数据地址
+    data_path = './CFFEX.IF.HOT_m5.csv'
+    df = pd.read_csv(data_path, encoding='gbk')
+    df['datetime'] = df['date'] + " " + df['time']
+    df.index = pd.to_datetime(df['datetime'])
+    df = df[['open', 'high', 'low', 'close', 'volume', 'open_interest']]
+    df.columns = ['open', 'high', 'low', 'close', 'volume', 'openinterest']
+    feed = bt.feeds.PandasDirectData(dataname=df, **params)
+    # 添加合约数据
+    cerebro.adddata(feed, name="index")
+    cerebro.broker.setcommission(commission=0.0005)
 
-# 添加资金
-cerebro.broker.setcash(100000.0)
+    # 添加资金
+    cerebro.broker.setcash(1000000.0)
 
-# 开始运行
-cerebro.run()
+    cerebro.addanalyzer(bt.analyzers.TotalValue, _name='_TotalValue')
+    cerebro.addanalyzer(bt.analyzers.PyFolio)
+    # 开始运行
+    results = cerebro.run()
 
-# 打印相关信息
-cerebro.plot()
+    pyfoliozer = results[0].analyzers.getbyname('pyfolio')
+    returns, positions, transactions, gross_lev = pyfoliozer.get_pf_items()
+    end_time = time.perf_counter()
+    print("backtrader回测耗费的时间为", round(end_time - begin_time, 3), " 秒")
+    # pf.create_full_tear_sheet(
+    #     returns,
+    #     positions=positions,
+    #     transactions=transactions,
+    #     # gross_lev=gross_lev,
+    #     live_start_date='2019-01-01',
+    # )
+
+if __name__ == '__main__':
+    run()
+
